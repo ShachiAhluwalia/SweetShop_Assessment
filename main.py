@@ -20,7 +20,18 @@ from schemas import SweetUpdate
 from database import engine
 from models import Base
 
+from fastapi.middleware.cors import CORSMiddleware
+
+
 app = FastAPI(title="Sweet Shop API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -142,9 +153,11 @@ def login_user(
     )
 
     return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    "access_token": access_token,
+    "token_type": "bearer",
+    "role": db_user.role
+}
+
 
 
 @app.put("/sweets/{sweet_id}")

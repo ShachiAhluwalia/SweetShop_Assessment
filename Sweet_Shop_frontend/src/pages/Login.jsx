@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const navigate = useNavigate(); // ✅ MISSING LINE
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,91 +14,85 @@ function Login() {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          username: email,
+          username: email.trim(),
           password: password,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Login failed");
-      }
-
       const data = await response.json();
 
-      localStorage.setItem("access_token", data.access_token);
+      if (!response.ok) {
+        alert(data.detail || "Invalid credentials");
+        return;
+      }
 
-      navigate("/sweets"); // ✅ redirect works now
-    } catch (error) {
-      alert("Invalid email or password");
+      // ✅ Save token
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user_role", data.role || "admin");
+
+      // ✅ HARD REDIRECT (forces App to re-evaluate token)
+      window.location.href = "/sweets";
+    } catch {
+      alert("Server error");
     }
   };
 
   return (
     <div
-    style={{
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-  }}
->
-
-    <div
       style={{
-        padding: "2rem",
-        backgroundColor: "white",
-        borderRadius: "8px",
-        boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-        width: "300px",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "linear-gradient(135deg, #fff0f6, #ffe4ec)",
       }}
     >
-      <h2 style={{ textAlign: "center" }}>Login</h2>
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          background: "#fff",
+          padding: "2rem",
+          borderRadius: "12px",
+          width: "320px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+        }}
+      >
+        <h2 style={{ textAlign: "center" }}>Login</h2>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label><br />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={{ width: "100%", padding: "10px", marginBottom: "12px" }}
+        />
 
-        <br />
-
-        <div>
-          <label>Password:</label><br />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div>
-
-        <br />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{ width: "100%", padding: "10px", marginBottom: "16px" }}
+        />
 
         <button
           type="submit"
           style={{
             width: "100%",
             padding: "10px",
-            backgroundColor: "#1976d2",
+            backgroundColor: "#ec407a",
             color: "white",
             border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
+            borderRadius: "8px",
           }}
         >
           Login
         </button>
       </form>
     </div>
-  </div>
-);
+  );
 }
 
 export default Login;

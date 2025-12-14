@@ -7,12 +7,16 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
       <Route path="/login" element={<Login />} />
+
       <Route
         path="/sweets"
-        element={token ? <Sweets /> : <Navigate to="/login" />}
+        element={token ? <Sweets /> : <Navigate to="/login" replace />}
       />
-      <Route path="*" element={<Navigate to="/login" />} />
+
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
