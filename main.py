@@ -1,16 +1,4 @@
 from fastapi import FastAPI
-
-app = FastAPI(title="Sweet Shop API")
-
-@app.get("/")
-def root():
-    return {"message": "Sweet Shop API is running"}
-
-from database import engine
-from models import Base
-
-Base.metadata.create_all(bind=engine)
-
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Sweet
@@ -18,19 +6,28 @@ from models import SweetCreate
 from typing import Optional
 
 from fastapi import HTTPException, Depends, status
-from sqlalchemy.orm import Session
 
 from schemas import UserCreate, UserLogin, UserResponse
 from security import hash_password, verify_password
 from auth import create_access_token
-from models import User
 
 from auth import get_current_user
 from permissions import admin_required
 from models import User
 
 from fastapi.security import OAuth2PasswordRequestForm
+from schemas import SweetUpdate
+from database import engine
+from models import Base
 
+app = FastAPI(title="Sweet Shop API")
+
+Base.metadata.create_all(bind=engine)
+
+
+@app.get("/")
+def root():
+    return {"message": "Sweet Shop API is running"}
 
 
 def get_db():
@@ -106,20 +103,6 @@ def purchase_sweet(
     return sweet
 
 
-@app.post("/sweets/{sweet_id}/restock")
-def restock_sweet(sweet_id: int, quantity: int, db: Session = Depends(get_db)):
-    sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
-
-    if not sweet:
-        raise HTTPException(status_code=404, detail="Sweet not found")
-
-    sweet.quantity += quantity
-    db.commit()
-    db.refresh(sweet)
-    return sweet
-
-
-
 @app.post("/auth/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user.email).first()
@@ -164,37 +147,44 @@ def login_user(
     }
 
 
-@app.post("/sweets", dependencies=[Depends(admin_required)])
-def create_sweet(
-    sweet: SweetCreate,
-    db: Session = Depends(get_db)
-):
-    new_sweet = Sweet(**sweet.dict())
-    db.add(new_sweet)
-    db.commit()
-    db.refresh(new_sweet)
-    return new_sweet
-
-@app.post("/sweets/{sweet_id}/restock", dependencies=[Depends(admin_required)])
-def restock_sweet(
+@app.put("/sweets/{sweet_id}")
+def update_sweet(
     sweet_id: int,
-    quantity: int,
-    db: Session = Depends(get_db)
+    sweet_data: SweetUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(admin_required)
 ):
     sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
-
     if not sweet:
         raise HTTPException(status_code=404, detail="Sweet not found")
 
-    sweet.quantity += quantity
+    sweet.price = sweet_data.price
+    sweet.quantity = sweet_data.quantity
     db.commit()
-    db.refresh(sweet)
     return sweet
 
-@app.delete("/sweets/{sweet_id}", dependencies=[Depends(admin_required)])
+
+@app.post("/sweets/{sweet_id}/restock")
+def restock_sweet(
+    sweet_id: int,
+    amount: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(admin_required)
+):
+    sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
+    if not sweet:
+        raise HTTPException(status_code=404, detail="Sweet not found")
+
+    sweet.quantity += amount
+    db.commit()
+    return sweet
+
+
+@app.delete("/sweets/{sweet_id}")
 def delete_sweet(
     sweet_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: User = Depends(admin_required)
 ):
     sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
 

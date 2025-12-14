@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
-
+from pydantic import BaseModel
 
 
 # User Schemas
@@ -52,3 +52,9 @@ class SweetResponse(SweetBase):
 
     class Config:
         orm_mode = True
+
+
+
+class SweetUpdate(BaseModel):
+    price: Optional[float] = None
+    quantity: Optional[int] = None
