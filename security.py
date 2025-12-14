@@ -5,14 +5,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """
-    Convert a plain password into a hashed password.
-    """
+    password = password[:72]  # bcrypt safety limit
     return pwd_context.hash(password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
+"""
     Verify if a plain password matches the hashed password.
     """
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    plain_password = plain_password[:72]
     return pwd_context.verify(plain_password, hashed_password)
+

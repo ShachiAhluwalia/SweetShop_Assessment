@@ -25,6 +25,14 @@ from security import hash_password, verify_password
 from auth import create_access_token
 from models import User
 
+from auth import get_current_user
+from permissions import admin_required
+from models import User
+
+from fastapi.security import OAuth2PasswordRequestForm
+
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -35,9 +43,12 @@ def get_db():
 from fastapi import Depends
 
 @app.get("/sweets")
-def get_sweets(db: Session = Depends(get_db)):
-    sweets = db.query(Sweet).all()
-    return sweets
+def get_sweets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return db.query(Sweet).all()
+
 
 @app.post("/sweets")
 def create_sweet(sweet: SweetCreate, db: Session = Depends(get_db)):
@@ -58,7 +69,8 @@ def search_sweets(
     category: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Sweet)
 
@@ -73,8 +85,13 @@ def search_sweets(
 
     return query.all()
 
+
 @app.post("/sweets/{sweet_id}/purchase")
-def purchase_sweet(sweet_id: int, db: Session = Depends(get_db)):
+def purchase_sweet(
+    sweet_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
 
     if not sweet:
@@ -87,6 +104,7 @@ def purchase_sweet(sweet_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(sweet)
     return sweet
+
 
 @app.post("/sweets/{sweet_id}/restock")
 def restock_sweet(sweet_id: int, quantity: int, db: Session = Depends(get_db)):
@@ -124,10 +142,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @app.post("/auth/login")
-def login_user(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
+def login_user(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    db_user = db.query(User).filter(User.email == form_data.username).first()
 
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
+    if not db_user or not verify_password(form_data.password, db_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
@@ -141,5 +162,47 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+
+@app.post("/sweets", dependencies=[Depends(admin_required)])
+def create_sweet(
+    sweet: SweetCreate,
+    db: Session = Depends(get_db)
+):
+    new_sweet = Sweet(**sweet.dict())
+    db.add(new_sweet)
+    db.commit()
+    db.refresh(new_sweet)
+    return new_sweet
+
+@app.post("/sweets/{sweet_id}/restock", dependencies=[Depends(admin_required)])
+def restock_sweet(
+    sweet_id: int,
+    quantity: int,
+    db: Session = Depends(get_db)
+):
+    sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
+
+    if not sweet:
+        raise HTTPException(status_code=404, detail="Sweet not found")
+
+    sweet.quantity += quantity
+    db.commit()
+    db.refresh(sweet)
+    return sweet
+
+@app.delete("/sweets/{sweet_id}", dependencies=[Depends(admin_required)])
+def delete_sweet(
+    sweet_id: int,
+    db: Session = Depends(get_db)
+):
+    sweet = db.query(Sweet).filter(Sweet.id == sweet_id).first()
+
+    if not sweet:
+        raise HTTPException(status_code=404, detail="Sweet not found")
+
+    db.delete(sweet)
+    db.commit()
+    return {"detail": "Sweet deleted successfully"}
 
 
