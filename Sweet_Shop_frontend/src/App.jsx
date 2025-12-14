@@ -1,9 +1,19 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Sweets from "./Sweets";
+
 function App() {
+  const token = localStorage.getItem("access_token");
+
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>🍬 Sweet Shop Management System</h1>
-      <p>Frontend is running successfully.</p>
-    </div>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/sweets"
+        element={token ? <Sweets /> : <Navigate to="/login" />}
+      />
+      <Route path="*" element={<Navigate to="/login" />} />
+    </Routes>
   );
 }
 
