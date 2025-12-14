@@ -17,6 +17,13 @@ from models import Sweet
 from models import SweetCreate
 from typing import Optional
 
+from fastapi import HTTPException, Depends, status
+from sqlalchemy.orm import Session
+
+from schemas import UserCreate, UserLogin, UserResponse
+from security import hash_password, verify_password
+from auth import create_access_token
+from models import User
 
 def get_db():
     db = SessionLocal()
@@ -92,3 +99,47 @@ def restock_sweet(sweet_id: int, quantity: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(sweet)
     return sweet
+
+
+
+@app.post("/auth/register", response_model=UserResponse)
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == user.email).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    new_user = User(
+        email=user.email,
+        hashed_password=hash_password(user.password)
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+
+@app.post("/auth/login")
+def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
+
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    access_token = create_access_token(
+        data={"sub": db_user.email}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
