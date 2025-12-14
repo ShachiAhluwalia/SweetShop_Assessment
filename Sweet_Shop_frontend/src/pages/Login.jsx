@@ -37,15 +37,15 @@ function Login() {
   };
 
   return (
-  <div
+    <div
     style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh",
-      backgroundColor: "#f5f5f5",
-    }}
-  >
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100vh",
+  }}
+>
+
     <div
       style={{
         padding: "2rem",
