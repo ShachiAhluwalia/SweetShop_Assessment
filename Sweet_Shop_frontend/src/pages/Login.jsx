@@ -3,34 +3,51 @@ import { useState } from "react";
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const url = isRegister
+      ? "http://127.0.0.1:8000/auth/register"
+      : "http://127.0.0.1:8000/auth/login";
+
+    const body = isRegister
+      ? JSON.stringify({ email, password })
+      : new URLSearchParams({
+          username: email.trim(),
+          password,
+        });
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/login", {
+      const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": isRegister
+            ? "application/json"
+            : "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({
-          username: email.trim(),
-          password: password,
-        }),
+        body,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.detail || "Invalid credentials");
+        alert(data.detail || "Something went wrong");
         return;
       }
 
-      // ✅ Save token
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user_role", data.role || "admin");
+      // Registration success
+      if (isRegister) {
+        alert("Registration successful! Please login.");
+        setIsRegister(false);
+        return;
+      }
 
-      // ✅ HARD REDIRECT (forces App to re-evaluate token)
+      // Login success
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user_role", data.role || "user");
+
       window.location.href = "/sweets";
     } catch {
       alert("Server error");
@@ -57,7 +74,9 @@ function Login() {
           boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
         }}
       >
-        <h2 style={{ textAlign: "center" }}>Login</h2>
+        <h2 style={{ textAlign: "center" }}>
+          {isRegister ? "Register" : "Login"}
+        </h2>
 
         <input
           type="email"
@@ -86,10 +105,25 @@ function Login() {
             color: "white",
             border: "none",
             borderRadius: "8px",
+            cursor: "pointer",
           }}
         >
-          Login
+          {isRegister ? "Register" : "Login"}
         </button>
+
+        <p style={{ textAlign: "center", marginTop: "12px" }}>
+          {isRegister ? "Already have an account?" : "New user?"}{" "}
+          <span
+            onClick={() => setIsRegister(!isRegister)}
+            style={{
+              color: "#ec407a",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            {isRegister ? "Login here" : "Register here"}
+          </span>
+        </p>
       </form>
     </div>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 function Sweets() {
   const [sweets, setSweets] = useState([]);
+  const [search, setSearch] = useState(""); // ✅ SEARCH STATE
   const [newSweet, setNewSweet] = useState({
     name: "",
     category: "",
@@ -13,11 +14,11 @@ function Sweets() {
   const navigate = useNavigate();
 
   const token = localStorage.getItem("access_token");
-  const role = localStorage.getItem("user_role"); // 👈 KEY LINE
+  const role = localStorage.getItem("user_role");
   const isAdmin = role === "admin";
 
   // -------------------------
-  // AUTH + FETCH SWEETS
+  // FETCH SWEETS
   // -------------------------
   useEffect(() => {
     if (!token) {
@@ -47,6 +48,30 @@ function Sweets() {
   const logout = () => {
     localStorage.clear();
     navigate("/login", { replace: true });
+  };
+
+  // -------------------------
+  // USER: PURCHASE
+  // -------------------------
+  const handlePurchase = async (id) => {
+    const res = await fetch(
+      `http://127.0.0.1:8000/sweets/${id}/purchase`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (!res.ok) {
+      alert("Unable to purchase");
+      return;
+    }
+
+    setSweets((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, quantity: s.quantity - 1 } : s
+      )
+    );
   };
 
   // -------------------------
@@ -108,6 +133,15 @@ function Sweets() {
   };
 
   // -------------------------
+  // FILTERED SWEETS (SEARCH)
+  // -------------------------
+  const filteredSweets = sweets.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // -------------------------
   // UI
   // -------------------------
   return (
@@ -115,7 +149,7 @@ function Sweets() {
       style={{
         padding: "2rem",
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #fff0f6, #ffe4ec)",
+        background: "#fdecef",
       }}
     >
       {/* HEADER */}
@@ -124,20 +158,18 @@ function Sweets() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          marginBottom: "1.5rem",
         }}
       >
-        <h2>
-          🍭 Sweet Shop Inventory{" "}
-          {isAdmin && <span style={{ fontSize: "14px" }}>👑 Admin</span>}
-        </h2>
+        <h2>🍭 Sweet Shop Inventory</h2>
 
         <button
           onClick={logout}
           style={{
-            background: "#e53935",
+            backgroundColor: "#e53935",
             color: "white",
             border: "none",
-            padding: "8px 14px",
+            padding: "8px 16px",
             borderRadius: "6px",
             cursor: "pointer",
           }}
@@ -146,83 +178,113 @@ function Sweets() {
         </button>
       </div>
 
+      {/* 🔍 SEARCH BAR */}
+      <input
+        type="text"
+        placeholder="Search by name or category..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          padding: "10px",
+          marginBottom: "2rem",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+        }}
+      />
+
       {/* ADMIN ADD SWEET */}
-      {isAdmin && (
-        <div
-          style={{
-            background: "white",
-            padding: "1rem",
-            borderRadius: "12px",
-            marginTop: "1.5rem",
-            boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
-          }}
-        >
-          <h3>➕ Add Sweet</h3>
+      {/* ADMIN ADD SWEET */}
+{isAdmin && (
+  <div
+    style={{
+      background: "white",
+      padding: "1rem",
+      borderRadius: "10px",
+      marginBottom: "2rem",
+      boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
+    }}
+  >
+    <h3 style={{ marginBottom: "1rem" }}>➕ Add Sweet</h3>
 
-          <input
-            placeholder="Name"
-            value={newSweet.name}
-            onChange={(e) =>
-              setNewSweet({ ...newSweet, name: e.target.value })
-            }
-          />
-          <input
-            placeholder="Category"
-            value={newSweet.category}
-            onChange={(e) =>
-              setNewSweet({ ...newSweet, category: e.target.value })
-            }
-          />
-          <input
-            type="number"
-            placeholder="Price"
-            value={newSweet.price}
-            onChange={(e) =>
-              setNewSweet({ ...newSweet, price: e.target.value })
-            }
-          />
-          <input
-            type="number"
-            placeholder="Quantity"
-            value={newSweet.quantity}
-            onChange={(e) =>
-              setNewSweet({ ...newSweet, quantity: e.target.value })
-            }
-          />
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1.2fr 1.2fr 0.8fr 0.8fr 1fr",
+        gap: "10px",
+        alignItems: "center",
+      }}
+    >
+      <input
+        placeholder="Name"
+        value={newSweet.name}
+        onChange={(e) =>
+          setNewSweet({ ...newSweet, name: e.target.value })
+        }
+      />
 
-          <button
-            onClick={handleAddSweet}
-            style={{
-              marginTop: "10px",
-              background: "#1976d2",
-              color: "white",
-              border: "none",
-              padding: "8px 12px",
-              borderRadius: "6px",
-            }}
-          >
-            Add Sweet
-          </button>
-        </div>
-      )}
+      <input
+        placeholder="Category"
+        value={newSweet.category}
+        onChange={(e) =>
+          setNewSweet({ ...newSweet, category: e.target.value })
+        }
+      />
+
+      <input
+        type="number"
+        placeholder="Price"
+        value={newSweet.price}
+        onChange={(e) =>
+          setNewSweet({ ...newSweet, price: e.target.value })
+        }
+      />
+
+      <input
+        type="number"
+        placeholder="Qty"
+        value={newSweet.quantity}
+        onChange={(e) =>
+          setNewSweet({ ...newSweet, quantity: e.target.value })
+        }
+      />
+
+      <button
+        onClick={handleAddSweet}
+        style={{
+          backgroundColor: "#1976d2",
+          color: "white",
+          border: "none",
+          padding: "10px",
+          borderRadius: "6px",
+          cursor: "pointer",
+          height: "42px",
+        }}
+      >
+        Add Sweet
+      </button>
+    </div>
+  </div>
+)}
+
 
       {/* SWEETS GRID */}
       <div
         style={{
           display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
           gap: "1.5rem",
-          marginTop: "2rem",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
         }}
       >
-        {sweets.map((s) => (
+        {filteredSweets.map((s) => (
           <div
             key={s.id}
             style={{
               background: "white",
               padding: "1rem",
-              borderRadius: "12px",
-              boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+              borderRadius: "14px",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
             }}
           >
             <h3>{s.name}</h3>
@@ -230,7 +292,26 @@ function Sweets() {
             <p>₹{s.price}</p>
             <p>Qty: {s.quantity}</p>
 
-            {/* ADMIN-ONLY ACTIONS */}
+            {!isAdmin && (
+              <button
+                disabled={s.quantity === 0}
+                onClick={() => handlePurchase(s.id)}
+                style={{
+                  width: "100%",
+                  marginTop: "10px",
+                  backgroundColor:
+                    s.quantity === 0 ? "#ccc" : "#e53935",
+                  color: "white",
+                  border: "none",
+                  padding: "8px",
+                  borderRadius: "6px",
+                  cursor: s.quantity === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                {s.quantity === 0 ? "Out of Stock" : "Purchase"}
+              </button>
+            )}
+
             {isAdmin && (
               <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
                 <button
