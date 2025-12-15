@@ -174,3 +174,7 @@ The application was tested manually using Swagger UI and the React frontend.
 
 ✅ Normal users cannot see admin actions
 
+**Final Application Screenshots**
+![Login page](Login_Page.png)
+![Admin UI](Admin_UI.png)
+![Normal User UI](User_UI.png)
